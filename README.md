@@ -1,9 +1,4 @@
-**UPDATE:
-
-* Removed config.txt
-* Added argument parsing capablity.
-
-**RUN THE FOLLOWING COMMANDS IN THE TERMINAL:
+#Usage:
 
 ```
 #!python
@@ -16,8 +11,7 @@ python clustering.py -d 100 -c 50 -i up -o bus_stops.txt  #run the command like 
 
 ```
 
-
-**MODULES:**
+##MODULES:
 
 * first_level_cluster.py	#contains code for first level clustering algorithm
 * second_level_cluster.py	#contains code for the second level clustering algorithm
@@ -25,6 +19,6 @@ python clustering.py -d 100 -c 50 -i up -o bus_stops.txt  #run the command like 
 * arguments.py #contains argument parsing capability
 
 
-**OUTPUT:**
+##OUTPUT:
 
 'output_file_name' specified in command-line after the -i flag.
