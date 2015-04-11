@@ -165,14 +165,14 @@ def write_data_to_file(file_name,object_name,header):
     write_file= open(file_name,'w')
     write_file.write(header+'\n')
     for i in object_name:
-        print i
+        #print i
         i=[str(j) for j in i]
         write_file.write(','.join(i)+'\n')
     write_file.close()
 
 def clean_directory(directory_name):
     for i in os.listdir(directory_name):
-        print "removing ",i
+        #print "removing ",i
         os.remove(directory_name+'/'+i)
 
 
@@ -205,7 +205,7 @@ def main(directory):
         write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
         
         call_algo.get_local_groups()     #get all local groups from zero-speed points and store in local_group_data[]
-        header= "latitude, longitude, time-stamp, count, trail_number"
+        header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
         write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
         
         call_algo.get_local_group_leaders() #get all local group leaders from local_group_data and store in local_group_leader[]

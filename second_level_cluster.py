@@ -92,9 +92,18 @@ class Second_level_cluster():
 			output_file.write(','.join(i)+'\n')
 		output_file.close()
 
+	def write_global_group_details(self,output_file):
+		output_file= open(output_file,'w')
+		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n')
+		for i in self.all_global_groups.keys():
+			for j in self.all_global_groups[i]:
+				j= [str(k) for k in j]
+				output_file.write(','.join(j)+'\n')
+
 
 
 def main(output_file_name,local_groups):
 	obj= Second_level_cluster(local_groups)
 	obj.algorithm()
 	obj.write_bus_stops(output_file_name)
+	obj.write_global_group_details('details/global_group_details.txt')

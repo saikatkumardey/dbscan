@@ -1,4 +1,4 @@
-latitude, longitude, time-stamp, count, trail_number
+latitude, longitude, time-stamp, count, trail_number, local_group_number
 23.56424,87.2829583333,101.40,81,6,1
 23.564245,87.2829583333,101.50,5,6,1
 23.564245,87.282975,101.50,80,6,1
