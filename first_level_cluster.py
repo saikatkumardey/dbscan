@@ -8,10 +8,10 @@ local_groups=[] #store all the local group leaders per group per trail in a file
 class First_level_cluster():
     
     def __init__(self):
-        self.data_lines=[]         #contains latitude, longitude, time-stamp
-        self.zero_speed_data=[]    # contains latitude, longitude, time-stamp, count
-        self.local_group_data=[]   # contains latitude, longitude, time-stamp, count, local_group_number
-        self.local_group_leader=[] # contains latitude, longitude, time-stamp, total_wait_time, local_group_number
+        self.data_lines=[]         #contains latitude, longitude, time-stamp,trail_number
+        self.zero_speed_data=[]    # contains latitude, longitude, time-stamp, count, trail_number
+        self.local_group_data=[]   # contains latitude, longitude, time-stamp, count, trail_number, local_group_number
+        self.local_group_leader=[] # contains latitude, longitude, time-stamp, total_wait_time, trail_number, local_group_number
         #self.distance_threshold= 100
 
     def read_data(self,file_name):
@@ -27,14 +27,14 @@ class First_level_cluster():
             print j,i
             j+=1
 
-    def process_line(self,raw_data):
+    def process_line(self,raw_data,trail_number):
         """ Takes a line of raw gps data and returns latitude,longitude and timestamp """
 
         line= raw_data.split(',')
         latitude, longitude, timestamp = line[0],line[1], line[2].split()[0]
-        return latitude,longitude, timestamp
+        return latitude,longitude, timestamp,trail_number
 
-    def get_zero_speed_data(self):
+    def get_zero_speed_data(self,trail_number):
         """ 
             stores the duplicate contiguous points in a list. 
             compare each line of gps data with the next one, group them if they are same
@@ -50,11 +50,11 @@ class First_level_cluster():
 
         count=0
         #get the first point from the raw trail data
-        current_latitude, current_longitude, current_timestamp = self.process_line(self.data_lines[0])
+        current_latitude, current_longitude, current_timestamp, trail_number= self.process_line(self.data_lines[0],trail_number)
         
         for next_line in self.data_lines[1:]:
             #get the next point
-            next_latitude, next_longitude, next_timestamp= self.process_line(next_line)
+            next_latitude, next_longitude, next_timestamp,trail_number= self.process_line(next_line,trail_number)
             #if current and next points are same, duplicate points found, increment count
             if (current_latitude,current_longitude) == (next_latitude,next_longitude):
                 count+=1
@@ -62,7 +62,7 @@ class First_level_cluster():
                 #if there is at least one additional duplicate point
                 if count>0:
                     #add the first point of the group to the zero_speed_list
-                    self.zero_speed_data.append([current_latitude,current_longitude,current_timestamp,count])
+                    self.zero_speed_data.append([current_latitude,current_longitude,current_timestamp,count,trail_number])
                     count=0 #reset count so as to mark the beginning of a new group
                 current_latitude, current_longitude, current_timestamp = next_latitude, next_longitude, next_timestamp
                 #assign the next point to be the current point, ie, it is probably the first point of a next zero-speed group
@@ -88,7 +88,7 @@ class First_level_cluster():
             #assign each point to local_group_no
             #point to note: local_group_no doesn't change if the distance between two points is <= distance_threshold.
             
-            each_point+=[local_group_no] #append the local_group_no (changed/unchanged) to the next point
+            each_point= each_point + [local_group_no] #append the local_group_no (changed/unchanged) to the next point
             self.local_group_data.append(each_point)
             current_point= each_point #assign each_point to the current_point
 
@@ -160,6 +160,20 @@ def comp(a):
     a= int(a[1].split('.')[0])
     return a
 
+def write_data_to_file(file_name,object_name,header):
+
+    write_file= open(file_name,'w')
+    write_file.write(header+'\n')
+    for i in object_name:
+        print i
+        i=[str(j) for j in i]
+        write_file.write(','.join(i)+'\n')
+    write_file.close()
+
+def clean_directory(directory_name):
+    for i in os.listdir(directory_name):
+        print "removing ",i
+        os.remove(directory_name+'/'+i)
 
 
 def main(directory):
@@ -172,23 +186,36 @@ def main(directory):
     #get all the file_names in the directory into a list and sort them up lexicographically  
     trails= sorted(get_file_names(directory),key=comp)
     print "LEN: ",len(trails)
-        
+
+
     #for each file in the list trails
+
+    if 'details' not in os.listdir('.'):
+        os.mkdir('details')
+    else:
+        clean_directory('details')
+
+    trail_index=1
     for trail in trails:
         input_trail= directory +'/'+ trail #get the path of the input file | for example, up/up_1.txt
         call_algo.read_data(input_trail) #read all the points in the input_trail and store it in data_lines[]
-        call_algo.get_zero_speed_data()  #get all the zero-speed points and store it in zero_speed_data[]
+        
+        call_algo.get_zero_speed_data(trail_index)  #get all the zero-speed points and store it in zero_speed_data[]
+        header= "latitude, longitude, time-stamp,trail_number"
+        write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
+        
         call_algo.get_local_groups()     #get all local groups from zero-speed points and store in local_group_data[]
+        header= "latitude, longitude, time-stamp, count, trail_number"
+        write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
+        
         call_algo.get_local_group_leaders() #get all local group leaders from local_group_data and store in local_group_leader[]
+        header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
+        write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
+        
         local_groups.append(call_algo.local_group_leader)
+        
+        trail_index+=1
+        
         call_algo.__init__();  #re-initialize all attributes of the object call_algo for the next trail
-
-    #uncomment the lines to write all the local-group leaders to a file
-    # f_out= open('localgroup','w')
-    # for i in local_groups:
-    #     for j in i:
-    #         j=[str(k) for k in j]
-    #         f_out.write(','.join(j)+'\n')
-    # f_out.close()
 
     return local_groups

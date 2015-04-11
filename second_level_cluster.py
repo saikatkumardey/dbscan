@@ -86,7 +86,7 @@ class Second_level_cluster():
 
 	def write_bus_stops(self,output_file):
 		output_file= open(output_file,'w')
-		output_file.write('latitude,longitude,timestamp,total_wait_time,local_group_number,global_group_no\n')
+		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n')
 		for i in self.global_group_leaders:
 			i=[str(j) for j in i ]
 			output_file.write(','.join(i)+'\n')
