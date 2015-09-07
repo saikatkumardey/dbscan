@@ -21,9 +21,13 @@ print "Num trails: ",num_trails
 def run_program(threshold):
 
     print "THRESHOLD ",threshold
+
+    if OUTPUT_FOLDER not in os.listdir('.'):
+        os.mkdir(OUTPUT_FOLDER)
     
     if str(threshold) not in os.listdir(OUTPUT_FOLDER):
         os.mkdir(OUTPUT_FOLDER+"/"+str(int(threshold)))
+
 
     second_level_cluster.main(OUTPUT_FOLDER, "bus_stops.csv",local_groups,threshold,num_trails,DISTANCE_THRESHOLD) #first argument is the input directory and the second argument is the output file
 

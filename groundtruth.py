@@ -1,5 +1,4 @@
 import math
-import arguments
 class Point:
     def __init__(self):
         self.Lat=0.00
