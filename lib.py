@@ -19,6 +19,8 @@ def get_spherical_distance(lat1,lat2,long1,long2):
 def get_group_leader(group):
         """ returns the group_leader point for a particular group of points"""
        
+        if group == []:
+            return
         wait_per_distance= [] #contains the summation of wait_time/distance from one point to all other point, for every point in the group
         total_wait_time=0  #would contain the total wait time of the group, we sum up the 'count' field of all the points
         for each_point in group:

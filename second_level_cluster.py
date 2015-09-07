@@ -2,8 +2,14 @@ import os
 import sys
 from math import *
 from lib import *
-from arguments import DISTANCE_THRESHOLD, GLOBAL_TRAIL_COVERAGE
 
+
+def get_standard_deviation(values):
+	mean = sum(values)/len(values)
+	deviation_sq = map(lambda x:(x-mean)**2, values)
+	variance = sum(deviation_sq)/len(deviation_sq)
+	sd = variance**(0.5)
+	return sd
 
 class Second_level_cluster():
 	
@@ -22,13 +28,15 @@ class Second_level_cluster():
 		for each_trail_index in xrange(0,len(self.all_trails)):
 			trail=[]
 			for each_point in self.all_trails[each_trail_index]:
+				if each_point == None:
+					continue
 				point = each_point
 				point += [0] 
 				trail.append(point)
 			self.all_trails[each_trail_index]= trail
 
 
-	def algorithm(self):
+	def algorithm(self,DISTANCE_THRESHOLD,threshold,num_trails):
 		"""
 		input: Set of trails containing local leader points (latitude, longitude, timestamp, wait_time, local_group_number)
 		output: All bus Stops (latitude,longitude,timestamp, wait_time,local_group_number,global_group_number)
@@ -71,39 +79,183 @@ class Second_level_cluster():
 		#corresponding to certain condition and we cannot iterate a list and delete elements from it at
 		#the same time
 
-		#remove all groups occupying less than 50% of the total trails
+		#remove all groups occupying less than (GLOBAL_TRAIL_COVERAGE) % of the total trails
 		for i in new_group.keys():
 			#iterate over all the keys of the new_group dictionary
-			if len(new_group[i])< GLOBAL_TRAIL_COVERAGE * self.total_number_of_trails:
+			# print "benchmark: ",(threshold/100.0) * num_trails,
+			# print "present: ",len(new_group[i]),
+			if len(new_group[i])< ((threshold/100.0) * num_trails):
+				# print "deleting it"
 				del self.all_global_groups[i]
+			# print
 
 		print len(self.all_global_groups.keys()),"bus stops"
 
 		#store all global group leaders in a list
 		for key in self.all_global_groups.keys():
-			self.global_group_leaders.append(get_group_leader(new_group[key]))
+
+			#if you do not add the [:] at the end,
+			#leader will contain a reference to the list
+			#so modifications to leader will modify the global group
+			#which is undesirable
+			# to copy a list, say A = []
+			# just do B = A[:]
+			leader = get_group_leader(self.all_global_groups[key])[:]
+			
+			#count the total wait time
+			total_wait_time = 0
+			for i in new_group[key]:
+				total_wait_time+= int(i[3])
+
+			#update the leader
+			leader[3] = total_wait_time
+
+			#append the leader to the global group leaders list
+			self.global_group_leaders.append(leader)
 
 
 	def write_bus_stops(self,output_file):
 		output_file= open(output_file,'w')
 		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n')
+		
+
+		#keep a compare time function
+		def compare_time(point1,point2):
+			time1, time2= [int(i) for i in point1[2].split(':')], [int(i) for i in point2[2].split(':')]
+			for i in xrange(0,len(time1)):
+				if(time1[i] > time2[i] ):
+					return 1
+				elif(time1[i] < time2[i] ):
+					return -1
+				else:
+					continue
+			return 0
+
+
+		#create a list of stop points
+		bus_stop_list =[]
 		for i in self.global_group_leaders:
 			i=[str(j) for j in i ]
+			bus_stop_list.append(i)
+			#output_file.write(','.join(i)+'\n')
+
+		#now sort the points based on the time
+		bus_stop_list.sort(cmp=compare_time)
+
+		#write the sorted stoppage points to file
+		for i in bus_stop_list:
 			output_file.write(','.join(i)+'\n')
+
 		output_file.close()
 
-	def write_global_group_details(self,output_file):
-		output_file= open(output_file,'w')
-		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n')
+	def write_global_group_details(self,OUTPUT_FOLDER,num_trails,threshold):
+		#log file
+		# stop number, total points, number of trails in the stop, point contribution of each trail in the stop
+
+		## 3 plots required
+		# 1> Trail Contribution % vs Stops
+		# 2> No of stops vs Trail Contribution Threshold
+		# 3> Mean Weight vs No of Stops
+
+		output_file= open(OUTPUT_FOLDER+"/"+str(threshold)+"/trail_vs_stops.csv",'w')
+		output_file.write('stop_number,total_points,trails,global_group_no,mean_wt_time,standard_deviation,each_trail_contrib\n')
+
+		class Output_log(object):
+			"""docstring for Output_log"""
+			def __init__(self,stop_number,total_contrib,trails,global_group_number,each_trail_contrib):
+				self.stop_number = stop_number
+				self.total_contrib = total_contrib
+				self.trails = trails
+				self.num_of_trails = len(trails)
+				self.each_trail_contrib = each_trail_contrib
+				self.global_group_number= global_group_number
+
+		stop_number = 0
+		stoppage_list=[]
+
+		trails_present = set()
+
 		for i in self.all_global_groups.keys():
+
+			total_contrib=0
+			trails= set()
+			each_trail_contrib={}
+			global_group_number = self.all_global_groups[i][0][-1]
+			
 			for j in self.all_global_groups[i]:
 				j= [str(k) for k in j]
-				output_file.write(','.join(j)+'\n')
+				wait_time = float(j[3])
+				trail_number = int(j[4])
+				total_contrib += wait_time
+				trails.add(trail_number)
+				trails_present.add(trail_number)
+				each_trail_contrib[trail_number]= wait_time
+			
+			obj = Output_log(stop_number, total_contrib, trails,global_group_number,each_trail_contrib)
+			stoppage_list.append(obj)
+			stop_number+=1
+
+		print "trails_present ",trails_present, len(trails_present)
+
+		#create a bucket
+		threshold_dict = {}
+
+		for i in stoppage_list:
+			# i.trails= (len(i.trails)*100.0)/len(trails_present)
+			i.trails= (len(i.trails)*100.0)/num_trails
+
+			if int(i.trails%10 == 0):
+				nearest_dec = int(i.trails)
+			else:
+				nearest_dec = int(i.trails) - int(i.trails)%10 + 10
+
+			if nearest_dec in threshold_dict:
+				threshold_dict[nearest_dec]+=1
+			else:
+				threshold_dict[nearest_dec]=1
+
+
+		num_of_stops = len(stoppage_list)
+		print "num stops: ",num_of_stops
+
+		for i in threshold_dict:
+			threshold_dict[i] = threshold_dict[i]*100.0/num_of_stops
+
+		#delete > 100% threshold
+		if 100 in threshold_dict:
+			del threshold_dict[100]
+		#change in algorithm
+		#instead of the interval in the bucket
+		#keep a single threshold into which all
+		#stoppages greater than the threshold will be stored
+		total_pct = 100
+		for i in sorted(threshold_dict.keys()):
+			threshold_dict[i] = total_pct - threshold_dict[i]
+			total_pct= threshold_dict[i]
+
+		print "Threshold: ",sorted(threshold_dict.items())
+
+		threshold_list = sorted(threshold_dict.items())
+		threshold_csv = open(OUTPUT_FOLDER+"/"+str(threshold)+"/stops_vs_threshold.csv","w")
+		threshold_csv.write("threshold,stops\n")
+		
+		for i in threshold_list:
+			threshold_csv.write(str(i[0])+","+str(i[1])+"\n")
+
+		for i in stoppage_list:
+			output_file.write(str(i.stop_number)+","+str(i.total_contrib)+","+str(i.trails)+","+str(i.global_group_number)+","+str(i.total_contrib*1.0/i.num_of_trails)+","+str(get_standard_deviation(i.each_trail_contrib.values()))+","+str(i.each_trail_contrib)+"\n")
+
+		# # write the mean_wt vs stops csv
+		# mean_wt_csv = open(OUTPUT_FOLDER+"/"+str(threshold)+"/mean_wt_vs_stops.csv","w")
+		# mean_wt_csv.write("stop_number,global_group_no,mean_wt\n")
+		# for i in stoppage_list:
+		# 	mean_wt_csv.write(str(i.stop_number)+","+str(i.global_group_number)+","+str(i.total_contrib*1.0/i.num_of_trails)+"\n")
 
 
 
-def main(output_file_name,local_groups):
+def main(OUTPUT_FOLDER,output_file_name,local_groups,threshold,num_trails,DISTANCE_THRESHOLD):
 	obj= Second_level_cluster(local_groups)
-	obj.algorithm()
-	obj.write_bus_stops(output_file_name)
-	obj.write_global_group_details('details/global_group_details.txt')
+	obj.algorithm(DISTANCE_THRESHOLD,threshold,num_trails)
+	obj.write_bus_stops(OUTPUT_FOLDER+'/'+str(threshold)+'/'+output_file_name)
+	# obj.write_global_group_details_prev('details/global_group_details.txt')
+	obj.write_global_group_details(OUTPUT_FOLDER,num_trails,threshold)

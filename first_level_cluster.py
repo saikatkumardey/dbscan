@@ -1,9 +1,10 @@
 import os
 import sys
 from lib import *
-from arguments import DISTANCE_THRESHOLD
 
 local_groups=[] #store all the local group leaders per group per trail in a file
+
+# num_trails= 0
 
 class First_level_cluster():
     
@@ -14,11 +15,54 @@ class First_level_cluster():
         self.local_group_leader=[] # contains latitude, longitude, time-stamp, total_wait_time, trail_number, local_group_number
         #self.distance_threshold= 100
 
-    def read_data(self,file_name):
+    def compare_time(self,time1,time2):
+        
+        for i in xrange(0,len(time1)):
+            if(time1[i] > time2[i] ):
+                return 1
+            elif(time1[i] < time2[i] ):
+                return -1
+            else:
+                continue
+        return 0
+
+    def read_data(self,file_name,TIME_START,TIME_END):
         """ reads the file named file_name and stores it in data_lines """
+
         input_file= open(file_name,'r')
-        self.data_lines= input_file.readlines()[1:]
+        temp= input_file.readlines()[1:]
+        #print temp
+
+        time_stamp = temp[0].split()[0].split(',')
+        time = [int(i) for i in time_stamp[-1].split(':')]
+        # hour = int(time_stamp[-1].split(':')[0])
+
+        if(self.compare_time(time,TIME_START) < 0):
+            return 0
+
+        if(self.compare_time(time,TIME_END) >= 0):
+            return 0
+
+
+        # num_trails+=1
+
+        for i in temp:
+            each_line = i
+            line = each_line.split(',')
+            time_stamp = line[2].split()[0]
+            time = [int(j) for j in time_stamp.split(':')]
+            #print i
+            #hour = int(time_stamp.split(':')[0])
+            # print time, TIME_START,TIME_END
+            # print self.compare_time(time,TIME_START), self.compare_time(time,TIME_END)
+            if self.compare_time(time,TIME_START)>=0 and self.compare_time(time,TIME_END) < 0:
+                    self.data_lines.append(each_line)
+                    #print "YES"
+            # else:
+            #     print "NO"
+        #print self.data_lines
         input_file.close()
+        return 1
 
     def print_data(self, data_list):
         """ prints the data_list. For test purposes only. """
@@ -31,6 +75,7 @@ class First_level_cluster():
         """ Takes a line of raw gps data and returns latitude,longitude and timestamp """
 
         line= raw_data.split(',')
+        #print line
         latitude, longitude, timestamp = line[0],line[1], line[2].split()[0]
         return latitude,longitude, timestamp,trail_number
 
@@ -47,9 +92,13 @@ class First_level_cluster():
                          where count= number of duplicate contiguous points
         
         """
-
+        #print ">",self.data_lines
         count=0
         #get the first point from the raw trail data
+
+        if self.data_lines == []:
+            return
+
         current_latitude, current_longitude, current_timestamp, trail_number= self.process_line(self.data_lines[0],trail_number)
         
         for next_line in self.data_lines[1:]:
@@ -68,12 +117,16 @@ class First_level_cluster():
                 #assign the next point to be the current point, ie, it is probably the first point of a next zero-speed group
 
 
-    def get_local_groups(self):
+    def get_local_groups(self,DISTANCE_THRESHOLD):
         """
         assign local group number to each point
         """
         #assign first point of zero_speed_data to be in local group 1
         local_group_no=1
+        
+        if self.zero_speed_data == []:
+            return
+        
         current_point = self.zero_speed_data[0]+[local_group_no]
         self.local_group_data.append(current_point)
         
@@ -162,9 +215,14 @@ def comp(a):
 
 def write_data_to_file(file_name,object_name,header):
 
+    if object_name == None:
+        print "Can't write to file "
     write_file= open(file_name,'w')
     write_file.write(header+'\n')
     for i in object_name:
+
+        if i==None:
+            continue
         #print i
         i=[str(j) for j in i]
         write_file.write(','.join(i)+'\n')
@@ -176,7 +234,7 @@ def clean_directory(directory_name):
         os.remove(directory_name+'/'+i)
 
 
-def main(directory):
+def main(directory,DISTANCE_THRESHOLD,TIME_START,TIME_END,TRAIL_ID_RANGE):
     """ First-level-clustering algorithm  
     Input: set of trails containing points (latitude,longitude, altitude, timestamp)
     output: leader points (latitude, longitude, timestamp, wait_time, local_group_number) for all groups in each trail
@@ -184,8 +242,9 @@ def main(directory):
     call_algo= First_level_cluster()
 
     #get all the file_names in the directory into a list and sort them up lexicographically  
-    trails= sorted(get_file_names(directory),key=comp)
-    print "LEN: ",len(trails)
+    trails= sorted(get_file_names(directory),key=comp)[: TRAIL_ID_RANGE]
+    print "number of trails ",len(trails)
+    print trails,len(trails)
 
 
     #for each file in the list trails
@@ -196,21 +255,26 @@ def main(directory):
         clean_directory('details')
 
     trail_index=1
+    num_trails=0
+
     for trail in trails:
         input_trail= directory +'/'+ trail #get the path of the input file | for example, up/up_1.txt
-        call_algo.read_data(input_trail) #read all the points in the input_trail and store it in data_lines[]
+        successs = call_algo.read_data(input_trail,TIME_START,TIME_END) #read all the points in the input_trail and store it in data_lines[]
         
+        if successs==1:
+            num_trails+=1
+
         call_algo.get_zero_speed_data(trail_index)  #get all the zero-speed points and store it in zero_speed_data[]
-        header= "latitude, longitude, time-stamp,trail_number"
-        write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
+        header= "latitude, longitude, time-stamp,count,trail_number"
+        #write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
         
-        call_algo.get_local_groups()     #get all local groups from zero-speed points and store in local_group_data[]
+        call_algo.get_local_groups(DISTANCE_THRESHOLD)     #get all local groups from zero-speed points and store in local_group_data[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
+        #write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
         
         call_algo.get_local_group_leaders() #get all local group leaders from local_group_data and store in local_group_leader[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
+        #write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
         
         local_groups.append(call_algo.local_group_leader)
         
@@ -218,4 +282,6 @@ def main(directory):
         
         call_algo.__init__();  #re-initialize all attributes of the object call_algo for the next trail
 
-    return local_groups
+
+    print "Effective no of trails: ",num_trails
+    return local_groups,num_trails

@@ -5,10 +5,12 @@
 
 python clustering.py --help  #to see a list of options for running the program
 
-python clustering.py -d 100 -c 50 -i up -o bus_stops.txt  #run the command like this.
-														  # to see what -d, -c, -i , -o stands for
+python clustering.py -d 100 -c 50 -i up -o bus_stops.txt -s 09:00:00 -e 17:00:00 -t all  #run the command like this.
+														  # to see what -d, -c, -i , -o, -s, -e,-t stands for
 														  # type python clustering.py --help
 
+option: '-t all' specifies output for all thresholds (10,20,30....90)
+        If left blank, output for only 0 threshold is obtained
 ```
 
 ##MODULES:
