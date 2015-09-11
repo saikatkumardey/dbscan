@@ -1,5 +1,8 @@
 input/**
+output*
 output/**
 plots/**
 groundtruth/**
+scripts/**
 *.pyc
+

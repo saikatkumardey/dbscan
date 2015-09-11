@@ -104,7 +104,7 @@ def compare_ground_truth(ground_truth_file, bus_stop_file,OUTPUT_FOLDER,threshol
             for r in p2:
                 storeDist.append(caldistance(p1.Lat,p1.Lon,r.Lat,r.Lon))
             minDist=min(storeDist)
-            if minDist<=80 and minDist<prevminDist:
+            if minDist<=30 and minDist<prevminDist:
                 if p1.nbd != -1:
                     for p3 in objlist2:
                         tmp=p3[0]

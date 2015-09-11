@@ -22,6 +22,7 @@ def run_program(threshold):
 
     print "THRESHOLD ",threshold
 
+
     if OUTPUT_FOLDER not in os.listdir('.'):
         os.mkdir(OUTPUT_FOLDER)
     
