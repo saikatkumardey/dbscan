@@ -110,13 +110,29 @@ class Second_level_cluster():
 			#update the leader
 			leader[3] = total_wait_time
 
+			#print spatial spread
+			#print leader[:5],leader[5:]
+			#print key,"=> ",self.get_spatial_spread(self.all_global_groups[key])
+			dist= self.get_spatial_spread(self.all_global_groups[key])
+			leader= leader[:5]+[str(dist)]+leader[5:]
 			#append the leader to the global group leaders list
 			self.global_group_leaders.append(leader)
+
+	def get_spatial_spread(self,group):
+		dist=0
+		if len(group)==0:
+			return dist
+
+		for current_point in xrange(0,len(group)):
+			for point in xrange(current_point+1,len(group)):
+				dist=max(dist,get_spherical_distance(float(group[current_point][0]),float(group[point][0]),float(group[current_point][1]),float(group[point][1])))
+		#print dist
+		return dist
 
 
 	def write_bus_stops(self,output_file):
 		output_file= open(output_file,'w')
-		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n')
+		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,spatial_spread,local_group_number,global_group_no\n')
 		
 
 		#keep a compare time function
