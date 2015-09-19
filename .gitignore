@@ -4,5 +4,6 @@ output/**
 plots/**
 groundtruth/**
 scripts/**
+details/**
 *.pyc
 

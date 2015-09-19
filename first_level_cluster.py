@@ -266,15 +266,15 @@ def main(directory,DISTANCE_THRESHOLD,TIME_START,TIME_END,TRAIL_ID_RANGE):
 
         call_algo.get_zero_speed_data(trail_index)  #get all the zero-speed points and store it in zero_speed_data[]
         header= "latitude, longitude, time-stamp,count,trail_number"
-        #write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
+        write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
         
         call_algo.get_local_groups(DISTANCE_THRESHOLD)     #get all local groups from zero-speed points and store in local_group_data[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        #write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
+        write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
         
         call_algo.get_local_group_leaders() #get all local group leaders from local_group_data and store in local_group_leader[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        #write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
+        write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
         
         local_groups.append(call_algo.local_group_leader)
         
