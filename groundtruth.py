@@ -47,7 +47,8 @@ def storing2(data):
         obj.timestamp=row[2]
         obj.total_wait_time = row[3]
         obj.trail_no= row[4]
-        obj.local_group_no = row[5]
+        obj.spatial_spread= row[5]
+        obj.local_group_no = row[6]
         obj.globalgroupId=int(eval(row[-1]))
         if prev[-1]==row[-1]:
             iobjlist.append(obj)
@@ -148,11 +149,11 @@ def compare_ground_truth(ground_truth_file, bus_stop_file,OUTPUT_FOLDER,threshol
     print "actual stops: ",len(objlist1),"fn ",no_fn," fp: ",no_fp," detected: ",len(detected_stoppages)
 
     detected = open(OUTPUT_FOLDER+"/"+str(int(threshold))+"/detected_stoppages.csv",'w')
-    detected.write("latitude,longitude,timestamp,total_wait_time,trail_number,local_group_number,global_group_no\n")
+    detected.write("latitude,longitude,timestamp,total_wait_time,trail_number,spatial_spread,local_group_number,global_group_no\n")
 
     for r in detected_stoppages:
         detected.write(str(r.Lat)+','+str(r.Lon)+','+str(r.timestamp)+','+
-                     str(r.total_wait_time)+','+str(r.trail_no)+','+str(r.local_group_no)+','+str(r.globalgroupId)+'\n')
+                     str(r.total_wait_time)+','+str(r.trail_no)+','+str(r.spatial_spread)+','+str(r.local_group_no)+','+str(r.globalgroupId)+'\n')
 
     detected.close()
 
