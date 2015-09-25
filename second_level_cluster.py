@@ -118,6 +118,17 @@ class Second_level_cluster():
 			#append the leader to the global group leaders list
 			self.global_group_leaders.append(leader)
 
+	def bus_stop_details(self):
+		bus_details = open('bus_stop_details','w')
+		stop_number=1
+		for values in self.all_global_groups.values():
+			bus_details.write("stop number "+str(stop_number)+"\n")
+			for i in values:
+				i=[str(j) for j in i]
+				bus_details.write(','.join(i)+'\n')
+			stop_number+=1
+
+
 	def get_spatial_spread(self,group):
 		dist=0
 		if len(group)==0:
@@ -191,6 +202,9 @@ class Second_level_cluster():
 
 		trails_present = set()
 
+		##temporary
+		stoppages_at_each_trail={}
+
 		for i in self.all_global_groups.keys():
 
 			total_contrib=0
@@ -210,6 +224,20 @@ class Second_level_cluster():
 			obj = Output_log(stop_number, total_contrib, trails,global_group_number,each_trail_contrib)
 			stoppage_list.append(obj)
 			stop_number+=1
+			for i in each_trail_contrib.keys():
+				if i not in stoppages_at_each_trail:
+					stoppages_at_each_trail[i]=[]
+				stoppages_at_each_trail[i].append(stop_number)
+		
+		s_at_each= open('stoppage_trails_detail.csv','w')
+		for i in stoppages_at_each_trail:
+			k= stoppages_at_each_trail[i]
+			k=[str(j) for j in k]
+			k= ','.join(k)
+			s_at_each.write(str(i)+"==>"+k+"\n")
+			print i,"=>",stoppages_at_each_trail[i]
+
+
 
 		print "trails_present ",trails_present, len(trails_present)
 
@@ -275,3 +303,4 @@ def main(OUTPUT_FOLDER,output_file_name,local_groups,threshold,num_trails,DISTAN
 	obj.write_bus_stops(OUTPUT_FOLDER+'/'+str(threshold)+'/'+output_file_name)
 	# obj.write_global_group_details_prev('details/global_group_details.txt')
 	obj.write_global_group_details(OUTPUT_FOLDER,num_trails,threshold)
+	obj.bus_stop_details()

@@ -105,7 +105,7 @@ class First_level_cluster():
             #get the next point
             next_latitude, next_longitude, next_timestamp,trail_number= self.process_line(next_line,trail_number)
             #if current and next points are same, duplicate points found, increment count
-            if (current_latitude,current_longitude) == (next_latitude,next_longitude):
+            if (str(current_latitude),str(current_longitude)) == (str(next_latitude),str(next_longitude)):
                 count+=1
             else:
                 #if there is at least one additional duplicate point
@@ -134,7 +134,9 @@ class First_level_cluster():
         for each_point in self.zero_speed_data[1:]:
             #get distance between the current_point and each_point
             distance= get_spherical_distance(float(current_point[0]),float(each_point[0]),float(current_point[1]),float(each_point[1]))
-            
+            if current_point[2]=='09:51:38':
+                print current_point,"===>",each_point,"====>",distance,DISTANCE_THRESHOLD
+
             if distance > DISTANCE_THRESHOLD:
                 #create a new group
                 local_group_no+=1
@@ -266,15 +268,15 @@ def main(directory,DISTANCE_THRESHOLD,TIME_START,TIME_END,TRAIL_ID_RANGE):
 
         call_algo.get_zero_speed_data(trail_index)  #get all the zero-speed points and store it in zero_speed_data[]
         header= "latitude, longitude, time-stamp,count,trail_number"
-        #write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
+        write_data_to_file('details/'+trail+'_zero_speed.txt',call_algo.zero_speed_data,header)
         
         call_algo.get_local_groups(DISTANCE_THRESHOLD)     #get all local groups from zero-speed points and store in local_group_data[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        #write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
+        write_data_to_file('details/'+trail+'_local_groups.txt',call_algo.local_group_data,header)
         
         call_algo.get_local_group_leaders() #get all local group leaders from local_group_data and store in local_group_leader[]
         header= "latitude, longitude, time-stamp, count, trail_number, local_group_number"
-        #write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
+        write_data_to_file('details/'+trail+'_local_group_leader.txt',call_algo.local_group_leader,header)
         
         local_groups.append(call_algo.local_group_leader)
         
