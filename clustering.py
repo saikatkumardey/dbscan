@@ -33,6 +33,9 @@ def run_program(threshold):
     second_level_cluster.main(OUTPUT_FOLDER, "bus_stops.csv",local_groups,threshold,num_trails,DISTANCE_THRESHOLD) #first argument is the input directory and the second argument is the output file
 
     # file_name = arguments.input_directory_name.split('_')[-1]
+    
+    #UNCOMMENT TO GET GROUND-TRUTH COMPARISON
+    
     fp,fn = groundtruth.compare_ground_truth(GROUND_TRUTH,OUTPUT_FOLDER+"/"+str(threshold)+'/bus_stops.csv',OUTPUT_FOLDER,threshold)
     threshold_fp_fn[threshold]= [fp,fn]
 

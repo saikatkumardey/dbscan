@@ -3,6 +3,8 @@ import sys
 from math import *
 from lib import *
 from datetime import datetime
+import pickle
+from pprint import pprint
 
 
 def get_standard_deviation(values):
@@ -20,6 +22,7 @@ class Second_level_cluster():
 		self.all_global_groups={} #contains all global-groups
 		self.global_group_leaders=[] #contains global group leaders chosen from each group depending on their wait-time and proximity to other points in the same group
 		self.bus_stops=[]
+		self.sorted_clusters=[]
 		self.bus_stop_count=0
 		self.total_number_of_trails=len(local_groups)
 
@@ -81,6 +84,11 @@ class Second_level_cluster():
 		#corresponding to certain condition and we cannot iterate a list and delete elements from it at
 		#the same time
 
+		##pickle all the groups
+		# pickle_data_file = open('raw_group_data.pkl','wb')
+		# pickle.dump(new_group,pickle_data_file)
+
+
 		#remove all groups occupying less than (GLOBAL_TRAIL_COVERAGE) % of the total trails
 		for i in new_group.keys():
 			#iterate over all the keys of the new_group dictionary
@@ -91,36 +99,23 @@ class Second_level_cluster():
 				del self.all_global_groups[i]
 			# print
 
-		print len(self.all_global_groups.keys()),"bus stops"
+		print len(self.all_global_groups.keys()),"clusters"
 
 		self.temporal_sorting()
+		# print len(self.all_global_groups)
+		# pprint(self.all_global_groups)
+		# self.temporal_sort_single_cluster(self.all_global_groups[1])
 
-		#store all global group leaders in a list
-		for key in self.all_global_groups.keys():
 
-			#if you do not add the [:] at the end,
-			#leader will contain a reference to the list
-			#so modifications to leader will modify the global group
-			#which is undesirable
-			# to copy a list, say A = []
-			# just do B = A[:]
-			leader = get_group_leader(self.all_global_groups[key])[:]
-			
-			#count the total wait time
-			total_wait_time = 0
-			for i in new_group[key]:
-				total_wait_time+= int(i[3])
+	def temporal_sort_single_cluster(self,cluster):
+		
+		for i in xrange(0,len(cluster)):
+			for j in xrange(i+1,len(cluster)):
+				point_a= cluster[i]
+				point_b= cluster[j]
+				if point_a[4] == point_b[4] and datetime.strptime(point_a[2],DATE_FORMAT)>datetime.strptime(point_b[2],DATE_FORMAT):
+					cluster[i],cluster[j] = cluster[j], cluster[i]
 
-			#update the leader
-			leader[3] = total_wait_time
-
-			#print spatial spread
-			#print leader[:5],leader[5:]
-			#print key,"=> ",self.get_spatial_spread(self.all_global_groups[key])
-			dist= self.get_spatial_spread(self.all_global_groups[key])
-			leader= leader[:5]+[str(dist)]+leader[5:]
-			#append the leader to the global group leaders list
-			self.global_group_leaders.append(leader)
 
 	def temporal_sorting(self):
 		'''
@@ -141,16 +136,32 @@ class Second_level_cluster():
 							break
 				if flag==True:
 					cluster_list[i],cluster_list[j] = cluster_list[j], cluster_list[i]
-		#print c_list
+		
+		#get group_heads
 		group_heads=[]
 		for cluster in cluster_list:
 			head = get_group_leader(cluster[1])
+			total_wait_time = 0
+			for i in cluster[1]:
+				total_wait_time+= int(i[3])
+			head[3]= total_wait_time
+			dist= self.get_spatial_spread(cluster[1])
+			head= head[:5]+[str(dist)]+head[5:]
 			group_heads.append(head)
 		f= open('group_heads','w')
 		for head in group_heads:
 			head=[str(i) for i in head]
 			f.write(','.join(head)+"\n")
 		f.close()
+		#update the sorted_clusters and bus_stops
+		self.sorted_clusters= cluster_list[:]
+		self.bus_stops= group_heads[:]
+
+
+		##dump the sorted clusters
+		pickle_data_file = open('pickle_data.pkl','wb')
+		pickle.dump(self.sorted_clusters,pickle_data_file)
+
 
 
 
@@ -166,9 +177,6 @@ class Second_level_cluster():
 				bus_details.write(','.join(i)+'\n')
 			stop_number+=1
 		
-		import pickle
-		pickle_data_file = open('pickle_data.pkl','wb')
-		pickle.dump(self.all_global_groups,pickle_data_file)
 
 
 	def get_spatial_spread(self,group):
@@ -186,44 +194,10 @@ class Second_level_cluster():
 	def write_bus_stops(self,output_file):
 		output_file= open(output_file,'w')
 		output_file.write('latitude,longitude,timestamp,total_wait_time,trail_number,spatial_spread,local_group_number,global_group_no\n')
-		
 
-		#keep a compare time function
-		def compare_time(point1,point2):
-			# if int(point1[4]) > int(point2[4]):
-			# 	return 1
-			# elif int(point1[4]) < int(point2[4]):
-			# 	return -1
-			# else:
-			time1, time2= [int(i) for i in point1[2].split(':')], [int(i) for i in point2[2].split(':')]
-			for i in xrange(0,len(time1)):
-				if(time1[i] > time2[i] ):
-					return 1
-				elif(time1[i] < time2[i] ):
-					return -1
-				else:
-					continue
-			return 0
-
-
-		#create a list of stop points
-		bus_stop_list =[]
-		for i in self.global_group_leaders:
-			i=[str(j) for j in i ]
-			bus_stop_list.append(i)
-			#output_file.write(','.join(i)+'\n')
-
-		#now sort the points based on the time
-		bus_stop_list.sort(cmp=compare_time)
-
-		##updated:
-		##sort based on trail number not time 
-		## this maintains the order of the stoppage
-		#bus_stop_list.sort(key=lambda x: int(x[4]))
-
-		#write the sorted stoppage points to file
-		for i in bus_stop_list:
-			output_file.write(','.join(i)+'\n')
+		for stop in self.bus_stops:
+			stop=[str(j) for j in stop ]
+			output_file.write(','.join(stop)+'\n')	
 
 		output_file.close()
 
@@ -257,13 +231,12 @@ class Second_level_cluster():
 		##temporary
 		stoppages_at_each_trail={}
 
-		for i in self.all_global_groups.keys():
+		for i,cluster in self.sorted_clusters:
 
 			total_contrib=0
 			trails= set()
 			each_trail_contrib={}
-			global_group_number = self.all_global_groups[i][0][-1]
-			
+			global_group_number = cluster[0][-1]
 			for j in self.all_global_groups[i]:
 				j= [str(k) for k in j]
 				wait_time = float(j[3])
@@ -281,12 +254,12 @@ class Second_level_cluster():
 					stoppages_at_each_trail[i]=[]
 				stoppages_at_each_trail[i].append(stop_number)
 		
-		s_at_each= open('stoppage_trails_detail.csv','w')
-		for i in stoppages_at_each_trail:
-			k= stoppages_at_each_trail[i]
-			k=[str(j) for j in k]
-			k= ','.join(k)
-			s_at_each.write(str(i)+"==>"+k+"\n")
+		# s_at_each= open('stoppage_trails_detail.csv','w')
+		# for i in stoppages_at_each_trail:
+		# 	k= stoppages_at_each_trail[i]
+		# 	k=[str(j) for j in k]
+		# 	k= ','.join(k)
+		# 	s_at_each.write(str(i)+"==>"+k+"\n")
 			#print i,"=>",stoppages_at_each_trail[i]
 
 

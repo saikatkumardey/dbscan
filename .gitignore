@@ -1,9 +1,6 @@
 input/**
-output*
-output/**
-plots/**
 groundtruth/**
-scripts/**
-details/**
+others/**
 *.pyc
+*.pkl
 

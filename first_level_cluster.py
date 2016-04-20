@@ -5,6 +5,7 @@ from lib import *
 local_groups=[] #store all the local group leaders per group per trail in a file
 
 # num_trails= 0
+ignored_trails=[]
 
 class First_level_cluster():
     
@@ -36,11 +37,14 @@ class First_level_cluster():
         time_stamp = temp[0].split()[0].split(',')
         time = [int(i) for i in time_stamp[-1].split(':')]
         # hour = int(time_stamp[-1].split(':')[0])
+        global ignored_stops
 
         if(self.compare_time(time,TIME_START) < 0):
+            ignored_trails.append(file_name)
             return 0
 
         if(self.compare_time(time,TIME_END) >= 0):
+            ignored_trails.append(file_name)
             return 0
 
 
@@ -134,8 +138,8 @@ class First_level_cluster():
         for each_point in self.zero_speed_data[1:]:
             #get distance between the current_point and each_point
             distance= get_spherical_distance(float(current_point[0]),float(each_point[0]),float(current_point[1]),float(each_point[1]))
-            if current_point[2]=='09:51:38':
-                print current_point,"===>",each_point,"====>",distance,DISTANCE_THRESHOLD
+            # if current_point[2]=='09:51:38':
+            #     print current_point,"===>",each_point,"====>",distance,DISTANCE_THRESHOLD
 
             if distance > DISTANCE_THRESHOLD:
                 #create a new group
@@ -246,7 +250,7 @@ def main(directory,DISTANCE_THRESHOLD,TIME_START,TIME_END,TRAIL_ID_RANGE):
     #get all the file_names in the directory into a list and sort them up lexicographically  
     trails= sorted(get_file_names(directory),key=comp)[: TRAIL_ID_RANGE]
     print "number of trails ",len(trails)
-    print trails,len(trails)
+    #print trails,len(trails)
 
 
     #for each file in the list trails
@@ -284,6 +288,6 @@ def main(directory,DISTANCE_THRESHOLD,TIME_START,TIME_END,TRAIL_ID_RANGE):
         
         call_algo.__init__();  #re-initialize all attributes of the object call_algo for the next trail
 
-
+    print "IGNORED: ",ignored_trails,len(ignored_trails)
     print "Effective no of trails: ",num_trails
     return local_groups,num_trails
